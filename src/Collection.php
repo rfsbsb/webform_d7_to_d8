@@ -29,7 +29,7 @@ abstract class Collection {
    *
    * @throws \Exception
    */
-  public function toArray() : array {
+  public function toArray(): array {
     $type = $this->type();
     foreach ($this->array as $row) {
       if (!is_a($row, $type)) {
@@ -45,6 +45,6 @@ abstract class Collection {
    * @return string
    *   A data type.
    */
-  abstract public function type() : string;
+  abstract public function type(): string;
 
 }

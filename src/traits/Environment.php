@@ -2,11 +2,8 @@
 
 namespace Drupal\webform_d7_to_d8\traits;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Database;
-// Not sure why this class is said not be used by the linter...
-// @codingStandardsIgnoreStart
-use Drupal\Core\Database\Driver\mysql\Connection;
-// @codingStandardsIgnoreEnd
 
 /**
  * Wrapper around elements external to the application logic.
@@ -16,9 +13,12 @@ trait Environment {
   /**
    * Mockable wrapper around Database::getConnection().
    *
-   * @throws \Throwable
+   * @param string $target
+   * @param null $key
+   *
+   * @return \Drupal\Core\Database\Driver\mysql\Connection
    */
-  public function drupalGetConnection($target = 'default', $key = NULL) : Connection {
+  public function drupalGetConnection($target = 'default', $key = NULL): Connection {
     return Database::getConnection($target, $key);
   }
 
@@ -27,7 +27,7 @@ trait Environment {
    *
    * @throws \Throwable
    */
-  public function getAllConnectionInfo() : array {
+  public function getAllConnectionInfo(): array {
     return Database::getAllConnectionInfo();
   }
 
@@ -47,11 +47,14 @@ trait Environment {
 
   /**
    * Mockable wrapper around t().
+   *
+   * @param $string
+   * @param array $args
+   *
+   * @return string
    */
-  public function t($string, array $args = array()) : string {
-    // @codingStandardsIgnoreStart
+  public function t($string, array $args = []): string {
     return t($string, $args);
-    // @codingStandardsIgnoreEnd
   }
 
 }

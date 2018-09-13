@@ -13,7 +13,7 @@ class Components extends Collection {
   /**
    * {@inheritdoc}
    */
-  public function type() : string {
+  public function type(): string {
     return Component::class;
   }
 
@@ -27,9 +27,9 @@ class Components extends Collection {
    *       '#type' => 'type',
    *     ].
    *
-   * @throws Exception
+   * @throws \Exception
    */
-  public function toFormArray() : array {
+  public function toFormArray(): array {
     $return = [];
 
     foreach ($this->toArray() as $component) {

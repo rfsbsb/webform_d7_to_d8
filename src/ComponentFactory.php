@@ -30,7 +30,7 @@ class ComponentFactory {
    * @return Component
    *   A webform component.
    */
-  public function create(Webform $webform, int $cid, array $info, array $options) : Component {
+  public function create(Webform $webform, int $cid, array $info, array $options): Component {
     switch ($info['type']) {
       case 'select':
         $class = SelectComponent::class;

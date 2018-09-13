@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
  * Dummy object using Utilities for testing.
  */
 class UtilitiesObject {
+
   use Utilities;
 
 }

@@ -34,14 +34,36 @@ class Component {
   }
 
   /**
+   * Get the legacy component ID.
+   *
+   * @return int
+   *   The cid.
+   */
+  public function getCid(): int {
+    return $this->cid;
+  }
+
+  /**
+   * Return a form array with only the current element, keyed by form_key.
+   *
+   * @return array
+   *   The result of ::createFormElement(), keyed by the form_key.
+   */
+  public function toFormArray(): array {
+    $info = $this->info;
+    return [
+      $info['form_key'] => $this->createFormElement(),
+    ];
+  }
+
+  /**
    * Based on legacy data, create a Drupal 8 form element.
    *
    * @return array
    *   An associative array with keys '#title', '#type'...
    *
-   * @throws Exception
    */
-  public function createFormElement() : array {
+  public function createFormElement(): array {
     $info = $this->info;
     $return = [
       '#title' => $info['name'],
@@ -66,29 +88,6 @@ class Component {
    */
   public function extraInfo(&$array) {
 
-  }
-
-  /**
-   * Get the legacy component ID.
-   *
-   * @return int
-   *   The cid.
-   */
-  public function getCid() : int {
-    return $this->cid;
-  }
-
-  /**
-   * Return a form array with only the current element, keyed by form_key.
-   *
-   * @return array
-   *   The result of ::createFormElement(), keyed by the form_key.
-   */
-  public function toFormArray() : array {
-    $info = $this->info;
-    return [
-      $info['form_key'] => $this->createFormElement(),
-    ];
   }
 
 }

@@ -5,8 +5,8 @@
  * Test Webform.
  */
 
-use PHPUnit\Framework\TestCase;
 use Drupal\webform_d7_to_d8\Webform;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Test Webform.

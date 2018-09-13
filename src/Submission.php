@@ -2,8 +2,8 @@
 
 namespace Drupal\webform_d7_to_d8;
 
-use Drupal\webform_d7_to_d8\traits\Utilities;
 use Drupal\webform\WebformSubmissionForm;
+use Drupal\webform_d7_to_d8\traits\Utilities;
 
 /**
  * Represents a webform submission.
@@ -39,73 +39,14 @@ class Submission {
   }
 
   /**
-   * Check whether a submission was already processed.
-   *
-   * This is especially useful when an import was interrumpted.
-   *
-   * @return bool
-   *   Whether a submission was already processed.
-   *
-   * @throws \Throwable
-   */
-  public function alreadyProcessed() : bool {
-    $sid = $this->getSid();
-    $nid = $this->getWebformNid();
-
-    $items = $this->stateGetArray('webform_d7_to_d8_per_node', []);
-    if (isset($items[$nid])) {
-      return $items[$nid] >= $sid;
-    }
-    return FALSE;
-  }
-
-  /**
-   * In cases where fields are required but not available, insert defaults.
-   *
-   * See ./README.md on how to set this up.
-   */
-  public function fillDefaults() {
-    if (!empty($this->options['defaults if required'][$this->webform->getNid()])) {
-      foreach ($this->options['defaults if required'][$this->webform->getNid()] as $default_key => $default_value) {
-        if (empty($this->data[$default_key]['value'])) {
-          $this->print('The required key @k was not set, setting it to @v', ['@k' => $default_key, '@v' => $default_value]);
-          $this->data[$default_key]['value'] = $default_value;
-        }
-      }
-    }
-  }
-
-  /**
-   * Get the legacy submission ID.
-   *
-   * @return int
-   *   The sid.
-   */
-  public function getSid() : int {
-    return $this->sid;
-  }
-
-  /**
-   * Get the legacy webform nid.
-   *
-   * @return int
-   *   The nid for this webform.
-   *
-   * @throws \Exception
-   */
-  public function getWebformNid() : int {
-    return $this->webform->getNid();
-  }
-
-  /**
    * Imports the submission.
    *
    * @return string
    *   The ID (simulated or real) of the new submission.
    *
-   * @throws \Exception
+   * @throws \Throwable
    */
-  public function process() : string {
+  public function process(): string {
     if ($this->alreadyProcessed()) {
       $this->print('Sid ' . $this->sid . ' for webform ' . $this->webform->getNid() . ' already processed; moving on...');
       return 'already processed';
@@ -147,6 +88,68 @@ class Submission {
       $return = $webform_submission->id();
     }
     return $return;
+  }
+
+  /**
+   * Check whether a submission was already processed.
+   *
+   * This is especially useful when an import was interrumpted.
+   *
+   * @return bool
+   *   Whether a submission was already processed.
+   *
+   * @throws \Throwable
+   */
+  public function alreadyProcessed(): bool {
+    $sid = $this->getSid();
+    $nid = $this->getWebformNid();
+
+    $items = $this->stateGetArray('webform_d7_to_d8_per_node', []);
+    if (isset($items[$nid])) {
+      return $items[$nid] >= $sid;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Get the legacy submission ID.
+   *
+   * @return int
+   *   The sid.
+   */
+  public function getSid(): int {
+    return $this->sid;
+  }
+
+  /**
+   * Get the legacy webform nid.
+   *
+   * @return int
+   *   The nid for this webform.
+   *
+   * @throws \Exception
+   */
+  public function getWebformNid(): int {
+    return $this->webform->getNid();
+  }
+
+  /**
+   * In cases where fields are required but not available, insert defaults.
+   *
+   * See ./README.md on how to set this up.
+   */
+  public function fillDefaults() {
+    if (!empty($this->options['defaults if required'][$this->webform->getNid()])) {
+      foreach ($this->options['defaults if required'][$this->webform->getNid()] as $default_key => $default_value) {
+        if (empty($this->data[$default_key]['value'])) {
+          $this->print('The required key @k was not set, setting it to @v', [
+            '@k' => $default_key,
+            '@v' => $default_value,
+          ]);
+          $this->data[$default_key]['value'] = $default_value;
+        }
+      }
+    }
   }
 
   /**

@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
  * Dummy Singleton for testing.
  */
 class SingletonObject {
+
   use Singleton;
 
 }

@@ -13,7 +13,7 @@ class Webforms extends Collection {
   /**
    * {@inheritdoc}
    */
-  public function type() : string {
+  public function type(): string {
     return Webform::class;
   }
 

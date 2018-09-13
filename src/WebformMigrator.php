@@ -2,9 +2,9 @@
 
 namespace Drupal\webform_d7_to_d8;
 
+use Drupal\webform_d7_to_d8\Collection\Webforms;
 use Drupal\webform_d7_to_d8\traits\Singleton;
 use Drupal\webform_d7_to_d8\traits\Utilities;
-use Drupal\webform_d7_to_d8\Collection\Webforms;
 
 /**
  * Encapsulated code for the application.
@@ -41,9 +41,9 @@ class WebformMigrator {
    * @return int
    *   0 if none or it cannot be calculated; otherwise returns the new sid.
    *
-   * @throws Exception
+   * @throws \Throwable
    */
-  public function d7ToD8sid(int $nid, int $sid, array $ignore = []) : int {
+  public function d7ToD8sid(int $nid, int $sid, array $ignore = []): int {
     $query = $this->getConnection('upgrade')
       ->select('webform_component', 'wc');
     $query->addField('wc', 'cid');
@@ -88,7 +88,8 @@ class WebformMigrator {
       $query->condition('name', $key);
       $query->condition('value', $value);
       if (count($candidates)) {
-        $candidates = array_intersect($candidates, array_keys($query->execute()->fetchAllAssoc('sid')));
+        $candidates = array_intersect($candidates, array_keys($query->execute()
+          ->fetchAllAssoc('sid')));
       }
       else {
         $candidates = array_keys($query->execute()->fetchAllAssoc('sid'));
@@ -113,9 +114,9 @@ class WebformMigrator {
    * @return array
    *   Array of new sids.
    *
-   * @throws Exception
+   * @throws \Throwable
    */
-  public function d7ToD8sidMultiple(int $nid, int $sid, array $ignore = []) : array {
+  public function d7ToD8sidMultiple(int $nid, int $sid, array $ignore = []): array {
     static $static_results = [];
     if (empty($static_results[$nid][$sid])) {
       $query = $this->getConnection('upgrade')
@@ -163,7 +164,8 @@ class WebformMigrator {
       $query->condition('name', $key);
       $query->condition('value', $value);
       if (count($candidates)) {
-        $candidates = array_intersect($candidates, array_keys($query->execute()->fetchAllAssoc('sid')));
+        $candidates = array_intersect($candidates, array_keys($query->execute()
+          ->fetchAllAssoc('sid')));
         if (!count($candidates)) {
           break;
         }
@@ -176,25 +178,14 @@ class WebformMigrator {
   }
 
   /**
-   * Get all errors.
-   *
-   * @return array
-   *   All errors.
-   */
-  public function errors() : array {
-    if (!is_array(self::$errors)) {
-      self::$errors = [];
-    }
-    return self::$errors;
-  }
-
-  /**
    * Run migration steps.
    *
    * See ./README.md for details and usage.
    *
    * @param array $options
    *   Associative array specificying options. See ./README.md for details.
+   *
+   * @throws \Exception
    */
   public function run(array $options = []) {
     $this->testConnection();
@@ -217,24 +208,9 @@ class WebformMigrator {
   }
 
   /**
-   * Remeber the last imported submission id in a state variable.
-   */
-  public function setLastImportedSid() {
-    $query = $this->getConnection('upgrade')->select('webform_submissions', 'ws');
-    $query->addField('ws', 'sid');
-    $query->range(0, 1);
-    $query->orderBy('sid', 'DESC');
-    $result = $query->execute()->fetchAllAssoc('sid');
-    $keys = array_keys($result);
-    $last = array_pop($keys);
-    $this->print('Keep track of latest imported submission id, @s, to not import the same submissions next time.', ['@s' => $last]);
-    \Drupal::state()->set('webform_d7_to_d8', $last);
-  }
-
-  /**
    * Throw an exception if the connection to the legacy database doesn't work.
    *
-   * @throws \Exception
+   * @throws \Throwable
    */
   public function testConnection() {
     $this->print('About to test the connection to legacy');
@@ -266,9 +242,10 @@ class WebformMigrator {
    * @param array $options
    *   Can contain "nid" => 123. If empty, all nodes will be loaded.
    *
-   * @throws \Exception
+   * @return \Drupal\webform_d7_to_d8\Collection\Webforms
+   * @throws \Throwable
    */
-  public function webforms(array $options = []) : Webforms {
+  public function webforms(array $options = []): Webforms {
     $query = $this->getConnection('upgrade')->select('webform', 'webform');
     $query->addField('webform', 'nid');
     $query->join('node', 'n', 'n.nid = webform.nid');
@@ -287,6 +264,35 @@ class WebformMigrator {
     }
 
     return new Webforms($array);
+  }
+
+  /**
+   * Get all errors.
+   *
+   * @return array
+   *   All errors.
+   */
+  public function errors(): array {
+    if (!is_array(self::$errors)) {
+      self::$errors = [];
+    }
+    return self::$errors;
+  }
+
+  /**
+   * Remember the last imported submission id in a state variable.
+   */
+  public function setLastImportedSid() {
+    $query = $this->getConnection('upgrade')
+      ->select('webform_submissions', 'ws');
+    $query->addField('ws', 'sid');
+    $query->range(0, 1);
+    $query->orderBy('sid', 'DESC');
+    $result = $query->execute()->fetchAllAssoc('sid');
+    $keys = array_keys($result);
+    $last = array_pop($keys);
+    $this->print('Keep track of latest imported submission id, @s, to not import the same submissions next time.', ['@s' => $last]);
+    \Drupal::state()->set('webform_d7_to_d8', $last);
   }
 
 }

@@ -2,11 +2,11 @@
 
 namespace Drupal\webform_d7_to_d8;
 
-use Drupal\webform_d7_to_d8\traits\Utilities;
-use Drupal\webform_d7_to_d8\Collection\Components;
-use Drupal\webform_d7_to_d8\Collection\Submissions;
 use Drupal\webform\Entity\Webform as DrupalWebform;
 use Drupal\webform\Entity\WebformSubmission;
+use Drupal\webform_d7_to_d8\Collection\Components;
+use Drupal\webform_d7_to_d8\Collection\Submissions;
+use Drupal\webform_d7_to_d8\traits\Utilities;
 
 /**
  * Represents a webform.
@@ -38,20 +38,27 @@ class Webform {
    *
    * This is never called, but is available to external code.
    *
-   * @throws Exception
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   * @throws \Throwable
    */
   public function deleteSubmissions() {
     if (isset($this->options['simulate']) && $this->options['simulate']) {
       $this->print('SIMULATE: Delete submissions for webform before reimporting them.');
       return;
     }
-    $query = $this->getConnection('default')->select('webform_submission', 'ws');
+    $query = $this->getConnection('default')
+      ->select('webform_submission', 'ws');
     $query->condition('ws.webform_id', 'webform_' . $this->getNid());
     $query->addField('ws', 'sid');
     $result = array_keys($query->execute()->fetchAllAssoc('sid'));
 
     $max = \Drupal::state()->get('webform_d7_to_d8_max_delete_items', 500);
-    $this->print('Will delete @n submissions in chunks of @c to avoid avoid out of memory errors.', ['@n' => count($result), '@c' => $max]);
+    $this->print('Will delete @n submissions in chunks of @c to avoid avoid out of memory errors.', [
+      '@n' => count($result),
+      '@c' => $max,
+    ]);
 
     $arrays = array_chunk($result, $max);
 
@@ -60,26 +67,12 @@ class Webform {
     $storage = \Drupal::entityTypeManager()->getStorage('webform_submission');
     foreach ($arrays as $array) {
       $submissions = WebformSubmission::loadMultiple($array);
-      $this->print('Deleting @n submissions for webform @f', ['@n' => count($submissions), '@f' => $this->getNid()]);
+      $this->print('Deleting @n submissions for webform @f', [
+        '@n' => count($submissions),
+        '@f' => $this->getNid(),
+      ]);
       $storage->delete($submissions);
     }
-  }
-
-  /**
-   * Return the first sid (submission id) to import.
-   */
-  public function firstSid() {
-    return \Drupal::state()->get('webform_d7_to_d8', 0);
-  }
-
-  /**
-   * Get the Drupal 8 Webform object.
-   *
-   * @return Drupal\webform\Entity\Webform
-   *   The Drupal webform ojbect as DrupalWebform.
-   */
-  public function getDrupalObject() : DrupalWebform {
-    return $this->drupalObject;
   }
 
   /**
@@ -99,7 +92,8 @@ class Webform {
    *   Options originally passed to the migrator (for example ['nid' => 123])
    *   and documented in ./README.md.
    *
-   * @throws \Exception
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   * @throws \Throwable
    */
   public function process($options = []) {
     $new_only = empty($options['new-only']) ? FALSE : TRUE;
@@ -118,11 +112,13 @@ class Webform {
     }
     $submissions = $this->webformSubmissions()->toArray();
     foreach ($submissions as $submission) {
-      $this->print($this->t('Form @n: Processing submission @s', ['@n' => $this->getNid(), '@s' => $submission->getSid()]));
+      $this->print($this->t('Form @n: Processing submission @s', [
+        '@n' => $this->getNid(),
+        '@s' => $submission->getSid(),
+      ]));
       try {
         $submission->process();
-      }
-      catch (\Throwable $t) {
+      } catch (\Throwable $t) {
         $this->print('ERROR with submission (errors and possible fixes will be shown at the end of the process)');
         WebformMigrator::instance()->addError($t->getMessage());
       }
@@ -136,8 +132,7 @@ class Webform {
         $this->print('Linking node @n to the webform we just created.', ['@n' => $this->getNid()]);
         $node->webform->target_id = 'webform_' . $this->getNid();
         $node->save();
-      }
-      catch (\Exception $e) {
+      } catch (\Exception $e) {
         $this->print('Node @n exists on the target environment, but we could not set the webform field to the appropriate webform, moving on...', ['@n' => $this->getNid()]);
       }
     }
@@ -147,55 +142,19 @@ class Webform {
   }
 
   /**
-   * Set the Drupal 8 Webform object.
-   *
-   * @param Drupal\webform\Entity\Webform $webform
-   *   The Drupal webform ojbect as DrupalWebform.
-   */
-  public function setDrupalObject(DrupalWebform $webform) {
-    $this->drupalObject = $webform;
-  }
-
-  /**
-   * Get all legacy submitted data for this webform.
-   *
-   * @return array
-   *   Submissions keyed by legacy sid (submission ID).
-   *
-   * @throws Exception
-   */
-  public function submittedData() : array {
-    $return = [];
-    $query = $this->getConnection('upgrade')->select('webform_submitted_data', 'wd');
-    $query->join('webform_component', 'c', 'c.cid = wd.cid AND c.nid = wd.nid');
-    $query->addField('c', 'form_key');
-    $query->addField('wd', 'sid');
-    $query->addField('wd', 'data');
-    $query->condition('wd.nid', $this->getNid(), '=');
-    $result = $query->execute()->fetchAll();
-    $return = [];
-    foreach ($result as $row) {
-      $return[$row->sid][$row->form_key] = [
-        'value' => $row->data,
-      ];
-    }
-    return $return;
-  }
-
-  /**
    * Get all legacy components for a given webform.
    *
    * @return Components
    *   The components.
    *
-   * @throws \Exception
+   * @throws \Throwable
    */
-  public function webformComponents() : Components {
+  public function webformComponents(): Components {
     $query = $this->getConnection('upgrade')->select('webform_component', 'wc');
     $query->addField('wc', 'cid');
     $query->addField('wc', 'form_key');
     $query->addField('wc', 'name');
-    $query->addField('wc', 'required');
+    $query->addField('wc', 'mandatory', 'required');
     $query->addField('wc', 'type');
     $query->addField('wc', 'extra');
     $query->condition('nid', $this->getNid(), '=');
@@ -204,10 +163,21 @@ class Webform {
     $result = $query->execute()->fetchAllAssoc('cid');
     $array = [];
     foreach ($result as $cid => $info) {
-      $array[] = ComponentFactory::instance()->create($this, $cid, (array) $info, $this->options);
+      $array[] = ComponentFactory::instance()
+        ->create($this, $cid, (array) $info, $this->options);
     }
 
     return new Components($array);
+  }
+
+  /**
+   * Get the Drupal 8 Webform object.
+   *
+   * @return \Drupal\webform\Entity\Webform The Drupal webform ojbect as DrupalWebform.
+   *   The Drupal webform ojbect as DrupalWebform.
+   */
+  public function getDrupalObject(): DrupalWebform {
+    return $this->drupalObject;
   }
 
   /**
@@ -216,9 +186,9 @@ class Webform {
    * @return Submissions
    *   The submissions.
    *
-   * @throws \Exception
+   * @throws \Throwable
    */
-  public function webformSubmissions() : Submissions {
+  public function webformSubmissions(): Submissions {
     if (isset($this->options['max_submissions']) && $this->options['max_submissions'] !== NULL) {
       $max = $this->options['max_submissions'];
       if ($max === 0) {
@@ -229,7 +199,8 @@ class Webform {
 
     $this->print('Only getting submission ids > @s because we have already imported the others.', ['@s' => $this->firstSid()]);
 
-    $query = $this->getConnection('upgrade')->select('webform_submissions', 'ws');
+    $query = $this->getConnection('upgrade')
+      ->select('webform_submissions', 'ws');
     $query->addField('ws', 'sid');
     $query->condition('nid', $this->getNid(), '=');
     $query->condition('sid', $this->firstSid(), '>');
@@ -254,6 +225,50 @@ class Webform {
     }
 
     return new Submissions($array);
+  }
+
+  /**
+   * Return the first sid (submission id) to import.
+   */
+  public function firstSid() {
+    return \Drupal::state()->get('webform_d7_to_d8', 0);
+  }
+
+  /**
+   * Get all legacy submitted data for this webform.
+   *
+   * @return array
+   *   Submissions keyed by legacy sid (submission ID).
+   *
+   * @throws \Throwable
+   */
+  public function submittedData(): array {
+    $return = [];
+    $query = $this->getConnection('upgrade')
+      ->select('webform_submitted_data', 'wd');
+    $query->join('webform_component', 'c', 'c.cid = wd.cid AND c.nid = wd.nid');
+    $query->addField('c', 'form_key');
+    $query->addField('wd', 'sid');
+    $query->addField('wd', 'data');
+    $query->condition('wd.nid', $this->getNid(), '=');
+    $result = $query->execute()->fetchAll();
+    $return = [];
+    foreach ($result as $row) {
+      $return[$row->sid][$row->form_key] = [
+        'value' => $row->data,
+      ];
+    }
+    return $return;
+  }
+
+  /**
+   * Set the Drupal 8 Webform object.
+   *
+   * @param \Drupal\webform\Entity\Webform $webform
+   *   The Drupal webform ojbect as DrupalWebform.
+   */
+  public function setDrupalObject(DrupalWebform $webform) {
+    $this->drupalObject = $webform;
   }
 
 }

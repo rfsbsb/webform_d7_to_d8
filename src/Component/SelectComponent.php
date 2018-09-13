@@ -26,7 +26,7 @@ class SelectComponent extends Component {
    * @return array
    *   Select items in the format ['a' => 'b', 'c' => 'd'].
    */
-  public function parseSelectOptions(string $items) : array {
+  public function parseSelectOptions(string $items): array {
     $return = [];
     $lines = explode(PHP_EOL, $items);
     foreach ($lines as $line) {

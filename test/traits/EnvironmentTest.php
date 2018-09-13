@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
  * Dummy object using Environment for testing.
  */
 class EnvironmentObject {
+
   use Environment;
 
 }

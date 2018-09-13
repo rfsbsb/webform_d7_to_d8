@@ -4,7 +4,7 @@ jobs:
   build:
     machine: true
     steps:
-      - checkout
-      - run:
-          name: Tests
-          command: ./scripts/ci.sh
+    - checkout
+    - run:
+        name: Tests
+        command: ./scripts/ci.sh
